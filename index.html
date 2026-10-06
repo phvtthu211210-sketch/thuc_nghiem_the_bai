@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Thẻ Bài Trí Tuệ Socratic</title>
+    
+    <!-- Tích hợp thư viện MathJax đọc công thức Toán/Lý/Hóa chuẩn -->
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --accent-color: #e74c3c;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+        }
+
+        /* Panel Điều Khiển */
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        select {
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        .btn-draw {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+
+        .btn-draw:hover {
+            background-color: #357abd;
+            transform: translateY(-2px);
+        }
+
+        /* Nút Hướng Dẫn Chơi */
+        .btn-guide {
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+        }
+
+        .btn-guide:hover {
+            background-color: #d68910;
+            transform: translateY(-2px);
+        }
+
+        /* Khung Thẻ Bài 3D */
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 550px;
+            height: 380px;
+            margin: 0 auto;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: var(--card-bg);
+            border: 2px solid #e1e8ed;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background: #fafafa;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            font-size: 14px;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+
+        .card-body {
+            font-size: 18px;
+            color: #333;
+            line-height: 1.6;
+            margin: 10px 0;
+            overflow-y: auto;
+            text-align: left;
+            flex-grow: 1;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-sub {
+            padding: 8px 14px;
+            font-size: 13px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-answer {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-detail {
+            background-color: #8e44ad;
+            color: white;
+        }
+
+        .btn-sub:hover {
+            opacity: 0.9;
+        }
+
+        /* Styles cho khung Đáp án bên dưới thẻ */
+        .content-box {
+            display: none;
+            text-align: left;
+            padding: 14px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .content-box.correct {
+            background: #e8f8f5;
+            border-left: 5px solid #27ae60;
+            color: #1e8449;
+        }
+
+        .content-box.wrong {
+            background: #fadbd8;
+            border-left: 5px solid #e74c3c;
+            color: #78281f;
+        }
+
+        #status-msg {
+            color: #27ae60;
+            font-style: italic;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        /* STYLES CHO CỬA SỔ POPUP HƯỚNG DẪN CHƠI (MODAL) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow-y: auto;
+            text-align: left;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+        }
+
+        .guide-step {
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .guide-step h4 {
+            margin: 0 0 5px 0;
+            color: #2980b9;
+        }
+
+        .guide-step p {
+            margin: 0;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hệ Thống Thẻ Bài Board game AI vs. Human Mind</h1>
+
+    <!-- Panel Điều Khiển -->
+    <div class="control-panel">
+        <select id="gradeSelect">
+            <option value="">-- Chọn Khối Lớp --</option>
+            <option value="10">Khối 10</option>
+            <option value="11">Khối 11</option>
+            <option value="12">Khối 12</option>
+        </select>
+
+        <select id="subjectSelect">
+            <option value="">-- Chọn Môn Học --</option>
+            <option value="Toan">Môn Toán</option>
+            <option value="Ly">Môn Vật Lý</option>
+            <option value="Hoa">Môn Hóa Học</option>
+            <option value="Sinh">Môn Sinh Học</option>
+            <option value="Van">Môn Ngữ Văn</option>
+        </select>
+
+        <button class="btn-draw" onclick="drawCard()">🎲 Rút Thẻ Ngẫu Nhiên</button>
+        <button class="btn-guide" onclick="openGuide()">📖 Hướng Dẫn Chơi</button>
+    </div>
+
+    <!-- Khung Thẻ Bài 3D -->
+    <div class="card-container">
+        <div class="card" id="cardElement">
+            
+            <!-- Mặt Trước Thẻ Bài -->
+            <div class="card-front">
+                <div class="card-header">
+                    <span id="frontMeta">Môn Học - Lớp</span>
+                    <span>Học mà chơi, Chơi mà học</span>
+                </div>
+                <div class="card-body" id="cardQuestion">
+                    Vui lòng chọn Khối Lớp, Môn Học và nhấn "Rút Thẻ Ngẫu Nhiên" để bắt đầu thử thách!
+                </div>
+                <div class="card-actions">
+                    <button class="btn-sub btn-answer" onclick="showSection('answer')">💡 Đáp Án Socratic</button>
+                    <button class="btn-sub btn-detail" onclick="flipToBack()">🔍 Giải Thích Chi Tiết</button>
+                </div>
+            </div>
+
+            <!-- Mặt Sau Thẻ Bài -->
+            <div class="card-back">
+                <div class="card-header">
+                    <span>Phân Tích Chi Tiết</span>
+                    <button onclick="flipToFront()" style="padding: 2px 8px; font-size: 12px; cursor: pointer;">↩ Quay lại</button>
+                </div>
+                <div class="card-body" style="justify-content: flex-start;">
+                    <strong style="color: #2980b9; display: block; font-size: 18px; margin-top: 5px; margin-bottom: 8px;">📝 Giải thích chi tiết & Bài học:</strong>
+                    <p id="detailedExplanationText" style="font-size: 17px; line-height: 1.7; margin-top: 0; color: #2c3e50;">...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Khung Hiển Thị Đáp Án Socratic -->
+    <div id="answerBox" class="content-box">
+        <strong id="answerHeader">✅ Kết luận đáp án:</strong>
+        <p id="correctAnswerText" style="margin: 5px 0 0 0; font-weight: bold; font-size: 17px;">...</p>
+    </div>
+
+    <div id="status-msg"></div>
+</div>
+
+<!-- POPUP HƯỚNG DẪN CHƠI BOARDGAME -->
+<div class="modal-overlay" id="guideModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📜 Hướng Dẫn Chơi Boardgame "AI vs. Human Mind"</h2>
+            <button class="close-btn" onclick="closeGuide()">✕</button>
+        </div>
+        
+        <div class="guide-step">
+            <h4>Bước 1: Chọn Bộ Thẻ Bài</h4>
+            <p>Người chơi hoặc Đội trưởng chọn đúng Khối Lớp (10, 11, 12) và Môn Học (Toán, Lý, Hóa, Sinh, Văn) cần thử thách trên bảng điều khiển.</p>
+        </div>
+
+        <div class="guide-step">
+            <h4>Bước 2: Rút Thẻ & Đọc Luận Điểm AI</h4>
+            <p>Bấm "🎲 Rút Thẻ Ngẫu Nhiên". Hệ thống xuất ra 1 luận điểm do AI đưa ra. Người chơi có 30 giây suy luận để phán đoán: AI đang nói đúng hay AI đang nói dối.</p>
+        </div>
+
+        <div class="guide-step">
+            <h4>Bước 3: Kiểm Tra Đáp Án Socratic</h4>
+            <p>Bấm nút "💡 Đáp Án Socratic" bên dưới thẻ để đối chiếu kết luận:
+               <br>• Khung Xanh ✅: AI đưa ra phát biểu đúng chuẩn kiến thức.
+               <br>• Khung Đỏ ❌: AI đang nói dối/bị bẫy ảo giác kiến thức.</p>
+        </div>
+
+        <div class="guide-step">
+            <h4>Bước 4: Phân Tích & Rút Ra Bài Học</h4>
+            <p>Bấm "🔍 Giải Thích Chi Tiết" để lật mặt sau thẻ bài. Đọc phần phản biện Socratic chi tiết giúp bạn hiểu rõ nguyên nhân lỗi sai và ghi nhớ bài học sâu sắc hơn!</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn-draw" style="padding: 10px 25px;" onclick="closeGuide()">Đã Hiểu, Bắt Đầu Chơi!</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // TOÀN BỘ CƠ SỞ DỮ LIỆU 225 CÂU HỎI ĐÃ ĐƯỢC MÃ HÓA CÔNG THỨC LATEX
+    const questionsDatabase = [
+        // ================= TOÁN HỌC =================
+        // LỚP 10 - TOÁN
+        { grade: "10", subject: "toan", question: "AI nói: Với hai vectơ \\(\\vec{a}\\) và \\(\\vec{b}\\) bất kỳ, tích vô hướng \\(\\vec{a} \\cdot \\vec{b}\\) luôn là một số dương.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tích vô hướng \\(\\vec{a} \\cdot \\vec{b} = |\\vec{a}| \\cdot |\\vec{b}| \\cdot \\cos(\\vec{a}, \\vec{b})\\). Tích này có thể âm nếu góc giữa hai vectơ là góc tù, hoặc bằng 0 nếu hai vectơ vuông góc hoặc có vectơ \\(\\vec{0}\\)." },
+        { grade: "10", subject: "toan", question: "AI nói: Hàm số \\(y = x^2 - 4x + 3\\) đồng biến trên khoảng \\((2; +\\infty)\\) và nghịch biến trên khoảng \\((-\\infty; 2)\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đỉnh của parabol là \\(x_0 = -b / (2a) = 4 / 2 = 2\\). Do \\(a = 1 > 0\\), hàm số nghịch biến trên \\((-\\infty; 2)\\) và đồng biến trên \\((2; +\\infty)\\)." },
+        { grade: "10", subject: "toan", question: "AI nói: Tam giác ABC có cạnh a=3, b=4, c=6 thì góc C là góc nhọn vì c là cạnh lớn nhất.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Theo định lý cosin, \\(\\cos C = \\frac{a^2 + b^2 - c^2}{2ab} = \\frac{9 + 16 - 36}{24} = -\\frac{11}{24} < 0\\). Do \\(\\cos C < 0\\) nên góc C là góc tù, không phải góc nhọn." },
+        { grade: "10", subject: "toan", question: "AI nói: Sai số tuyệt đối của một số đo phản ánh độ chính xác của phép đo đó.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Trong thống kê và sai số (Toán 10), sai số tuyệt đối \\(\\Delta_a\\) đo lường mức độ lệch tối đa giữa giá trị đúng và giá trị xấp xỉ." },
+        { grade: "10", subject: "toan", question: "AI nói: Phương trình đường thẳng d: \\(2x - 3y + 1 = 0\\) có một vectơ pháp tuyến là \\(\\vec{n} = (2; -3)\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đường thẳng có dạng tổng quát \\(ax + by + c = 0\\) có vectơ pháp tuyến là \\(\\vec{n} = (a; b) = (2; -3)\\)." },
+        { grade: "10", subject: "toan", question: "AI nói: Nếu một tập hợp có n phần tử thì số tập hợp con của nó là 2n.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lỗ hổng logic: Số tập hợp con của tập hợp có n phần tử là \\(2^n\\) (2 lũy thừa n), không phải phép nhân 2n." },
+        { grade: "10", subject: "toan", question: "AI nói: Khoảng biến thiên của một mẫu số liệu bằng hiệu số giữa giá trị lớn nhất và giá trị nhỏ nhất trong mẫu số liệu đó.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng theo định nghĩa khoảng biến thiên \\(R = x_{\\max} - x_{\\min}\\) trong đại số thống kê GDPT 2018." },
+        { grade: "10", subject: "toan", question: "AI nói: Đường tròn \\((x - 1)^2 + (y + 2)^2 = 9\\) có tâm I(-1; 2) và bán kính R = 9.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Đường tròn \\((x-a)^2 + (y-b)^2 = R^2\\) có tâm I(a; b) và bán kính R. Do đó tâm phải là I(1; -2) và bán kính \\(R = \\sqrt{9} = 3\\)." },
+        { grade: "10", subject: "toan", question: "AI nói: Vectơ \\(\\vec{0}\\) cùng phương với mọi vectơ.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Theo quy ước trong hình học vectơ lớp 10, vectơ-không cùng phương và cùng hướng với mọi vectơ." },
+        { grade: "10", subject: "toan", question: "AI nói: Bất phương trình \\(x + y > 3\\) có vô số nghiệm và tập nghiệm của nó biểu diễn trên mặt phẳng tọa độ là một nửa mặt phẳng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Miền nghiệm của bất phương trình bậc nhất hai ẩn là nửa mặt phẳng giới hạn bởi đường thẳng x + y = 3 (không lấy bờ)." },
+        { grade: "10", subject: "toan", question: "AI nói: Bất phương trình bậc hai \\(ax^2 + bx + c > 0\\) vô nghiệm khi và chỉ khi \\(a < 0\\) và \\(\\Delta \\le 0\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "\\(ax^2 + bx + c > 0\\) vô nghiệm khi \\(ax^2 + bx + c \\le 0\\) với mọi x, điều này xảy ra khi \\(a < 0\\) và \\(\\Delta \\le 0\\) (với \\(a \\ne 0\\)). AI thiếu lập luận chặt chẽ về dấu a và trường hợp bé hơn hoặc bằng 0." },
+        { grade: "10", subject: "toan", question: "AI nói: Nếu hai đường thẳng có hệ số góc bằng nhau thì chúng song song hoặc trùng nhau.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Hai đường thẳng \\(y = k_1 x + m_1\\) và \\(y = k_2 x + m_2\\) có \\(k_1 = k_2\\) thì song song (khi \\(m_1 \\ne m_2\\)) hoặc trùng nhau (khi \\(m_1 = m_2\\))." },
+        { grade: "10", subject: "toan", question: "AI nói: Mốt của một mẫu số liệu là giá trị xuất hiện ít nhất trong mẫu số liệu đó.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Mốt (Mo) là giá trị xuất hiện với tần số lớn nhất (nhiều nhất), không phải ít nhất." },
+        { grade: "10", subject: "toan", question: "AI nói: Phép hoán vị của n phần tử là số cách sắp xếp n phần tử đó theo một thứ tự nhất định, bằng n!.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa đúng về hoán vị \\(P_n = n!\\)." },
+        { grade: "10", subject: "toan", question: "AI nói: Chọn ngẫu nhiên một số tự nhiên từ 1 đến 10, biến cố 'Chọn được số chia hết cho 11' là biến cố chắc chắn.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Trong khoảng từ 1 đến 10 không có số nào chia hết cho 11. Đây là 'biến cố không thể', không phải biến cố chắc chắn." },
+
+        // LỚP 11 - TOÁN
+        { grade: "11", subject: "toan", question: "AI nói: Hàm số \\(y = \\tan x\\) xác định với mọi \\(x \\in \\mathbb{R}\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Hàm số \\(y = \\tan x = \\frac{\\sin x}{\\cos x}\\) chỉ xác định khi \\(\\cos x \\ne 0 \\Leftrightarrow x \\ne \\frac{\\pi}{2} + k\\pi\\ (k \\in \\mathbb{Z})\\)." },
+        { grade: "11", subject: "toan", question: "AI nói: Dãy số \\(U_n\\) có \\(U_n = 3n - 1\\) là một cấp số cộng với công sai d = 3.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "\\(U_{n+1} - U_n = [3(n+1) - 1] - (3n - 1) = 3\\) (hằng số không đổi), do đó là cấp số cộng có d = 3." },
+        { grade: "11", subject: "toan", question: "AI nói: Tứ diện có tất cả các mặt là các tam giác đều được gọi là tứ diện đều.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa đúng về hình tứ diện đều trong không gian." },
+        { grade: "11", subject: "toan", question: "AI nói: Giới hạn \\(\\lim_{x \\to 0} \\frac{\\sin x}{x} = 0\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lỗi giới hạn cơ bản: Giới hạn chuẩn \\(\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1\\), không phải 0." },
+        { grade: "11", subject: "toan", question: "AI nói: Đường thẳng d vuông góc với mặt phẳng (P) nếu d vuông góc với hai đường thẳng nằm trong (P).", correctAnswer: "AI đang nói dối.", detailedExplanation: "AI thiếu điều kiện quan trọng: d phải vuông góc với hai đường thẳng **cắt nhau** nằm trong (P). Nếu hai đường thẳng song song thì chưa đủ kết luận." },
+        { grade: "11", subject: "toan", question: "AI nói: Hàm số \\(y = \\cos x\\) là hàm số chẵn và tuần hoàn với chu kỳ \\(T = 2\\pi\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "\\(\\cos(-x) = \\cos(x)\\) nên là hàm chẵn; chu kỳ chuẩn của cosin là \\(2\\pi\\)." },
+        { grade: "11", subject: "toan", question: "AI nói: Tích các thừa số của một cấp số nhân có \\(u_1 = 2\\), công bội q = 3 thì \\(u_4 = 54\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Số hạng tổng quát \\(u_n = u_1 \\cdot q^{n-1} \\Rightarrow u_4 = 2 \\cdot 3^3 = 2 \\cdot 27 = 54\\)." },
+        { grade: "11", subject: "toan", question: "AI nói: Hai mặt phẳng phân biệt cùng vuông góc với một đường thẳng thì song song với nhau.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đây là tính chất quan hệ vuông góc - song song cơ bản trong không gian 3D." },
+        { grade: "11", subject: "toan", question: "AI nói: Nếu hàm số y = f(x) liên tục trên [a; b] và \\(f(a) \\cdot f(b) < 0\\) thì phương trình f(x) = 0 có ít nhất một nghiệm thuộc khoảng (a; b).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng theo định lý về sự tồn tại nghiệm của hàm số liên tục." },
+        { grade: "11", subject: "toan", question: "AI nói: Đạo hàm của hàm số \\(y = x^3\\) tại x = 2 bằng 6.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Đạo hàm \\(y' = 3x^2\\). Tại x = 2, \\(y'(2) = 3 \\cdot 2^2 = 12\\), không phải 6 (AI đã lấy 3 x 2 thay vì 3 x 2^2)." },
+        { grade: "11", subject: "toan", question: "AI nói: Giá trị đại diện của nhóm số liệu [a; b) trong mẫu số liệu ghép nhóm là (a + b) / 2.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định nghĩa trong Thống kê ghép nhóm Toán 11." },
+        { grade: "11", subject: "toan", question: "AI nói: Khái niệm logarithm chỉ xác định với cơ số a > 0 và \\(a \\ne 1\\), biểu thức dưới logarithm phải lớn hơn 0.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Điều kiện tồn tại \\(\\log_a b\\) là a > 0, \\(a \\ne 1\\) và b > 0." },
+        { grade: "11", subject: "toan", question: "AI nói: Hàm số \\(y = a^x\\) (với 0 < a < 1) là hàm số đồng biến trên \\(\\mathbb{R}\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Với 0 < a < 1, hàm số mũ \\(y = a^x\\) là hàm số **nghịch biến** trên \\(\\mathbb{R}\\)." },
+        { grade: "11", subject: "toan", question: "AI nói: Phương trình \\(\\sin x = 2\\) có hai họ nghiệm trên đường tròn lượng giác.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Do \\(-1 \\le \\sin x \\le 1\\) với mọi x, phương trình \\(\\sin x = 2 > 1\\) hoàn toàn **vô nghiệm**." },
+        { grade: "11", subject: "toan", question: "AI nói: Góc giữa hai đường thẳng trong không gian có thể là góc tù (lớn hơn 90 độ).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Góc giữa hai đường thẳng trong không gian luôn nằm trong khoảng từ 0 độ đến 90 độ (\\(0^\\circ \\le \\theta \\le 90^\\circ\\))." },
+
+        // LỚP 12 - TOÁN
+        { grade: "12", subject: "toan", question: "AI nói: Hàm số y = f(x) có đạo hàm \\(f'(x_0) = 0\\) tại \\(x_0\\) thì chắc chắn đạt cực trị tại \\(x_0\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "\\(f'(x_0) = 0\\) là điều kiện cần nhưng chưa đủ. Điều kiện đủ là \\(f'(x)\\) phải **đổi dấu** khi qua \\(x_0\\). Ví dụ \\(y = x^3\\) có \\(y'(0) = 0\\) nhưng không có cực trị." },
+        { grade: "12", subject: "toan", question: "AI nói: Khối đa diện đều loại {4; 3} là khối lập phương có 6 mặt, 8 đỉnh, 12 cạnh.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Ký hiệu {p; q} với p=4 (mỗi mặt là tứ giác) và q=3 (mỗi đỉnh là đỉnh chung của 3 mặt) chính là khối lập phương." },
+        { grade: "12", subject: "toan", question: "AI nói: Tiệm cận đứng của đồ thị hàm số \\(y = \\frac{2x + 1}{x - 1}\\) là đường thẳng y = 2.", correctAnswer: "AI đang nói dối.", detailedExplanation: "y = 2 là tiệm cận **ngang** (\\(\\lim_{x \\to \\infty} y = 2\\)). Tiệm cận **đứng** phải là x = 1 (khiến mẫu số bằng 0)." },
+        { grade: "12", subject: "toan", question: "AI nói: Trong không gian Oxyz, độ dài của vectơ \\(\\vec{u} = (a; b; c)\\) được tính bằng công thức \\(|\\vec{u}| = \\sqrt{a^2 + b^2 + c^2}\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng công thức tính độ dài vectơ trong tọa độ 3D." },
+        { grade: "12", subject: "toan", question: "AI nói: Nguyên hàm của hàm số \\(f(x) = \\frac{1}{x}\\) trên khoảng \\((0; +\\infty)\\) là \\(F(x) = \\ln x + C\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng theo công thức nguyên hàm cơ bản \\((\\ln x)' = 1/x\\)." },
+        { grade: "12", subject: "toan", question: "AI nói: Tích phân \\(\\int_a^b f(x) dx\\) luôn biểu diễn diện tích của hình phẳng giới hạn bởi đồ thị y = f(x), trục Ox và hai đường thẳng x=a, x=b.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tích phân có thể âm nếu đồ thị nằm phía dưới trục Ox. Diện tích hình phẳng phải tính bằng tích phân có dấu giá trị tuyệt đối: \\(\\int_a^b |f(x)| dx\\)." },
+        { grade: "12", subject: "toan", question: "AI nói: Tọa độ trung điểm M của đoạn thẳng AB với A(1; 2; 3) và B(3; 4; 5) là M(2; 3; 4).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tọa độ trung điểm là trung bình cộng: ((1+3)/2; (2+4)/2; (3+5)/2) = (2; 3; 4)." },
+        { grade: "12", subject: "toan", question: "AI nói: Đồ thị hàm số bậc ba \\(y = ax^3 + bx^2 + cx + d\\) (\\(a \\ne 0\\)) luôn có tâm đối xứng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tâm đối xứng của đồ thị hàm bậc ba là điểm uốn \\(I(x_0; y_0)\\) với \\(x_0 = -b / (3a)\\)." },
+        { grade: "12", subject: "toan", question: "AI nói: Trong không gian Oxyz, phương trình mặt phẳng đi qua điểm M(1; 0; 0) và có vectơ pháp tuyến \\(\\vec{n} = (2; -1; 1)\\) là \\(2x - y + z + 2 = 0\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Phương trình mặt phẳng: \\(2(x - 1) - 1(y - 0) + 1(z - 0) = 0 \\Leftrightarrow 2x - y + z - 2 = 0\\). AI dối ở dấu của hằng số (+2 thay vì -2)." },
+        { grade: "12", subject: "toan", question: "AI nói: Mẫu số liệu ghép nhóm có phương sai càng lớn thì độ tán lệch của các số liệu so với số trung bình càng cao.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Phương sai (\\(s^2\\)) đo lường độ biến động/tán lệch của dữ liệu xung quanh giá trị trung bình." },
+        { grade: "12", subject: "toan", question: "AI nói: Giá trị nhỏ nhất của hàm số \\(y = x + \\frac{4}{x}\\) trên khoảng \\((0; +\\infty)\\) là 4.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Áp dụng bất đẳng thức Cauchy cho hai số dương: \\(x + \\frac{4}{x} \\ge 2\\sqrt{x \\cdot \\frac{4}{x}} = 4\\). Dấu '=' xảy ra khi x = 2." },
+        { grade: "12", subject: "toan", question: "AI nói: Vectơ chỉ phương của đường thẳng d: \\(\\frac{x-1}{2} = \\frac{y+2}{-1} = \\frac{z}{3}\\) là \\(\\vec{u} = (1; -2; 0)\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Vectơ chỉ phương lấy từ các hệ số ở mẫu số: \\(\\vec{u} = (2; -1; 3)\\). (1; -2; 0) là tọa độ một điểm nằm trên đường thẳng." },
+        { grade: "12", subject: "toan", question: "AI nói: Bất phương trình \\(\\log_2(x - 1) > 3\\) có tập nghiệm là \\((9; +\\infty)\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Điều kiện x > 1. \\(\\log_2(x - 1) > 3 \\Leftrightarrow x - 1 > 2^3 = 8 \\Leftrightarrow x > 9\\)." },
+        { grade: "12", subject: "toan", question: "AI nói: Khoảng cách giữa hai đường thẳng chéo nhau trong không gian bằng khoảng cách từ một điểm trên đường thẳng này đến đường thẳng kia.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lỗ hổng định nghĩa: Khoảng cách giữa 2 đường thẳng chéo nhau là độ dài đoạn vuông góc chung, hoặc khoảng cách giữa đường thứ nhất đến mặt phẳng song song chứa đường thứ hai." },
+        { grade: "12", subject: "toan", question: "AI nói: Nếu biến ngẫu nhiên X tuân theo phân bố chuẩn thì đường cong xác suất của nó có hình chuông cân đối qua giá trị kỳ vọng E(X).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng tính chất phân bố chuẩn (xác suất thống kê Lớp 12 GDPT 2018)." },
+
+        // ================= VẬT LÝ =================
+        // LỚP 10 - VẬT LÝ
+        { grade: "10", subject: "ly", question: "AI nói: Tốc độ trung bình luôn luôn bằng độ lớn của vận tốc trung bình trong mọi chuyển động.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tốc độ trung bình bằng tổng quãng đường chia thời gian (s/t). Độ lớn vận tốc trung bình bằng độ dịch chuyển chia thời gian (\\(|\\Delta x|/t\\)). Khi vật đổi chiều chuyển động thì \\(s > |\\Delta x|\\)." },
+        { grade: "10", subject: "ly", question: "AI nói: Trong rơi tự do, một vật nặng sẽ rơi nhanh hơn một vật nhẹ nếu bỏ qua sức cản không khí.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Khi bỏ qua lực cản không khí, mọi vật đều rơi tự do với cùng gia tốc g, do đó rơi nhanh như nhau bất kể khối lượng." },
+        { grade: "10", subject: "ly", question: "AI nói: Gia tốc của chuyển động tròn đều luôn hướng vào tâm quỹ đạo và có độ lớn không đổi.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Gia tốc hướng tâm \\(a_{ht} = v^2 / r\\) có phương bán kính, chiều hướng vào tâm và độ lớn cố định." },
+        { grade: "10", subject: "ly", question: "AI nói: Động lượng của một vật là một đại lượng vectơ cùng hướng với vectơ vận tốc.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Biểu thức động lượng \\(\\vec{p} = m\\vec{v}\\). Vì m > 0 nên \\(\\vec{p}\\) luôn cùng hướng với \\(\\vec{v}\\)." },
+        { grade: "10", subject: "ly", question: "AI nói: Công của lực đàn hồi làm lò xo giãn ra luôn mang giá trị dương.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lực đàn hồi luôn ngược chiều với chiều biến dạng, nên khi lò xo giãn ra, lực đàn hồi sinh công âm." },
+        { grade: "10", subject: "ly", question: "AI nói: Quán tính là tính chất của mọi vật có xu hướng bảo toàn vận tốc cả về hướng và độ lớn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng theo Định luật 1 Newton." },
+        { grade: "10", subject: "ly", question: "AI nói: Lực ma sát trượt xuất hiện ở mặt tiếp xúc giữa hai vật và luôn thúc đẩy chuyển động của vật.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lực ma sát trượt luôn ngược chiều chuyển động tương đối của bề mặt tiếp xúc, có tác dụng cản trở chuyển động." },
+        { grade: "10", subject: "ly", question: "AI nói: Tổng năng lượng của một hệ kín (hệ cô lập) luôn được bảo toàn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định luật bảo toàn và chuyển hóa năng lượng." },
+        { grade: "10", subject: "ly", question: "AI nói: Hiệu suất của một quá trình chuyển hóa năng lượng luôn bé hơn 100% do có sự hao phí năng lượng dưới dạng nhiệt.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Lực cản và ma sát luôn gây tổn hao năng lượng tỏa nhiệt, làm \\(H = (A_{\\text{có ích}} / A_{\\text{toàn phần}}) < 100\\%\\)." },
+        { grade: "10", subject: "ly", question: "AI nói: Lực cân bằng là hai lực cùng đặt vào một vật, cùng độ lớn, cùng phương và cùng chiều.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Hai lực cân bằng phải **ngược chiều** nhau, không phải cùng chiều." },
+        { grade: "10", subject: "ly", question: "AI nói: Mômen lực đối với một trục quay là đại lượng đặc trưng cho tác dụng làm quay của lực, bằng tích của lực với cánh tay đòn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Biểu thức \\(M = F \\cdot d\\), trong đó d là khoảng cách từ trục quay đến giá của lực." },
+        { grade: "10", subject: "ly", question: "AI nói: Lực hướng tâm là một loại lực cơ học mới xuất hiện thêm bên cạnh lực hấp dẫn và lực đàn hồi.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lực hướng tâm không phải lực mới, nó chỉ là hợp lực của các lực cơ học đóng vai trò giữ vật chuyển động tròn." },
+        { grade: "10", subject: "ly", question: "AI nói: Độ dịch chuyển có thể nhận giá trị bằng 0 ngay cả khi vật đã di chuyển một quãng đường dài.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Nếu vật đi một đường cong khép kín và quay về đúng vị trí xuất phát thì độ dịch chuyển bằng 0." },
+        { grade: "10", subject: "ly", question: "AI nói: Công suất được đo bằng Joule (J).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lỗi đơn vị: Joule (J) là đơn vị của Công/Năng lượng. Công suất đo bằng Watt (W) hoặc J/s." },
+        { grade: "10", subject: "ly", question: "AI nói: Cặp lực và phản lực trong Định luật 3 Newton triệt tiêu lẫn nhau vì chúng có cùng độ lớn và ngược chiều.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lỗ hổng logic: Lực và phản lực **đặt vào hai vật khác nhau** nên không bao giờ triệt tiêu lẫn nhau." },
+
+        // LỚP 11 - VẬT LÝ
+        { grade: "11", subject: "ly", question: "AI nói: Phương trình dao động điều hòa \\(x = A\\cos(\\omega t + \\varphi)\\) có gia tốc biến thiên cùng tần số nhưng ngược pha với li độ.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "\\(a = -\\omega^2 x\\). Dấu trừ cho thấy gia tốc a ngược pha (\\(\\pi\\) rad) so với li độ x." },
+        { grade: "11", subject: "ly", question: "AI nói: Sóng cơ truyền được trong chân không với tốc độ bằng tốc độ ánh sáng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Sóng cơ cần môi trường vật chất (rắn, lỏng, khí) để truyền đi. Sóng cơ **không truyền được** trong chân không." },
+        { grade: "11", subject: "ly", question: "AI nói: Lực tương tác giữa hai điện tích điểm đặt trong chân không tỉ lệ thuận với tích độ lớn hai điện tích và tỉ lệ nghịch với khoảng cách giữa chúng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Định luật Coulomb khẳng định lực tỉ lệ nghịch với **bình phương khoảng cách** (\\(r^2\\)), không phải khoảng cách r." },
+        { grade: "11", subject: "ly", question: "AI nói: Đường sức điện thế luôn là những đường cong kín không có điểm đầu và điểm kết thúc.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Đường sức điện trường tĩnh xuất phát từ điện tích dương (hoặc vô cực) và kết thúc ở điện tích âm (hoặc vô cực), không phải đường cong kín." },
+        { grade: "11", subject: "ly", question: "AI nói: Sóng điện từ là sóng ngang và truyền được cả trong chân không.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Vectơ \\(\\vec{E}\\) và \\(\\vec{B}\\) vuông góc nhau và vuông góc phương truyền sóng; truyền tốt trong chân không với tốc độ \\(c \\approx 3 \\cdot 10^8\\) m/s." },
+        { grade: "11", subject: "ly", question: "AI nói: Tụ điện có khả năng tích trữ năng lượng dưới dạng năng lượng từ trường.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tụ điện tích trữ năng lượng dưới dạng **điện trường**. Cuộn cảm mới tích trữ năng lượng từ trường." },
+        { grade: "11", subject: "ly", question: "AI nói: Hiện tượng giao thoa sóng xảy ra khi hai sóng kết hợp gặp nhau, tạo ra các vị trí dao động với biên độ cực đại và cực tiểu cố định.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng bản chất hiện tượng giao thoa của hai nguồn kết hợp (cùng tần số, độ lệch pha không đổi)." },
+        { grade: "11", subject: "ly", question: "AI nói: Tần số của sóng cơ không thay đổi khi sóng truyền từ môi trường này sang môi trường khác.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tần số f do nguồn phát quyết định nên không đổi; chỉ có tốc độ v và bước sóng \\(\\lambda\\) thay đổi theo môi trường." },
+        { grade: "11", subject: "ly", question: "AI nói: Cường độ dòng điện chạy qua điện trở tỉ lệ nghịch với hiệu điện thế giữa hai đầu điện trở đó.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Theo định luật Ohm \\(I = U/R\\), cường độ dòng điện tỉ lệ **thuận** với hiệu điện thế U." },
+        { grade: "11", subject: "ly", question: "AI nói: Khoảng vân trong giao thoa ánh sáng đơn sắc giảm xuống khi khoảng cách từ hai khe đến màn tăng lên.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Công thức khoảng vân \\(i = \\frac{\\lambda D}{a}\\). Khi khoảng cách D tăng thì khoảng vân i phải **tăng**, không giảm." },
+        { grade: "11", subject: "ly", question: "AI nói: Tốc độ truyền âm trong môi trường chất rắn thường lớn hơn trong chất lỏng và chất khí.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Mật độ phần tử và độ đàn hồi chất rắn cao hơn nên \\(v_{\\text{rắn}} > v_{\\text{lỏng}} > v_{\\text{khí}}\\)." },
+        { grade: "11", subject: "ly", question: "AI nói: Cường độ điện trường tại một điểm đặc trưng cho khả năng tác dụng lực điện của điện trường tại điểm đó.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định nghĩa \\(\\vec{E} = \\vec{F} / q\\)." },
+        { grade: "11", subject: "ly", question: "AI nói: Biên độ của dao động cưỡng bức chỉ phụ thuộc vào biên độ của ngoại lực cưỡng bức.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Biên độ dao động cưỡng bức còn phụ thuộc vào độ lệch giữa tần số ngoại lực và tần số riêng của hệ, cũng như lực cản môi trường." },
+        { grade: "11", subject: "ly", question: "AI nói: Quang phổ liên tục phụ thuộc vào bản chất hóa học của nguồn phát sáng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Quang phổ liên tục **chỉ phụ thuộc vào nhiệt độ** của nguồn phát, không phụ thuộc vào bản chất hóa học." },
+        { grade: "11", subject: "ly", question: "AI nói: Suất điện động của nguồn điện đặc trưng cho khả năng thực hiện công của lực ngoài bên trong nguồn điện.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng bản chất khái niệm suất điện động \\(\\mathcal{E} = A/q\\)." },
+
+        // LỚP 12 - VẬT LÝ
+        { grade: "12", subject: "ly", question: "AI nói: Nội năng của một lượng khí lý tưởng chỉ phụ thuộc vào nhiệt độ của khối khí đó.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Do bỏ qua thế năng tương tác giữa các phân tử khí lý tưởng, nội năng chỉ gồm động năng phân tử, vốn chỉ phụ thuộc nhiệt độ tuyệt đối T." },
+        { grade: "12", subject: "ly", question: "AI nói: Quá trình đẳng nhiệt là quá trình biến đổi trạng thái trong đó áp suất của khối khí được giữ không đổi.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Quá trình đẳng nhiệt giữ **nhiệt độ** không đổi (T = const). Quá trình áp suất không đổi gọi là đẳng áp." },
+        { grade: "12", subject: "ly", question: "AI nói: Thang nhiệt độ Kelvin và thang độ C có cách tính khác nhau nhưng 1°C có độ biến thiên bằng 1 K.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "\\(T(K) = t(^\\circ C) + 273{,}15\\), nên biến thiên nhiệt độ \\(\\Delta T(K) = \\Delta t(^\\circ C)\\)." },
+        { grade: "12", subject: "ly", question: "AI nói: Từ thông qua một diện tích S đạt giá trị cực đại khi đường sức từ song song với mặt phẳng khung dây.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Từ thông \\(\\Phi = BS \\cos \\alpha\\). Khi đường sức từ song song mặt phẳng khung dây thì góc giữa pháp tuyến và đường sức là \\(\\alpha = 90^\\circ \\Rightarrow \\cos 90^\\circ = 0 \\Rightarrow \\Phi = 0\\)." },
+        { grade: "12", subject: "ly", question: "AI nói: Lực từ tác dụng lên một đoạn dây dẫn mang dòng điện đặt vuông góc với cảm ứng từ tỉ lệ thuận với cường độ dòng điện.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Công thức lực Ampere \\(F = IBL \\sin\\theta\\). Khi \\(\\theta = 90^\\circ\\), \\(F = IBL\\), tỉ lệ thuận với I." },
+        { grade: "12", subject: "ly", question: "AI nói: Hiện tượng cảm ứng điện từ chỉ xuất hiện khi từ thông qua mạch kín biến thiên theo thời gian.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng bản chất định luật Faraday về cảm ứng điện từ." },
+        { grade: "12", subject: "ly", question: "AI nói: Hạt nhân nguyên tử \\(^{235}_{92}\\text{U}\\) có 92 proton và 235 neutron.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Hạt nhân có Z = 92 proton, tổng số nucleon A = 235. Số neutron \\(N = A - Z = 235 - 92 = 143\\), không phải 235." },
+        { grade: "12", subject: "ly", question: "AI nói: Năng lượng liên kết riêng của hạt nhân càng lớn thì hạt nhân đó càng bền vững.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Năng lượng liên kết riêng (\\(E_{lk}/A\\)) đặc trưng cho mức độ bền vững của hạt nhân." },
+        { grade: "12", subject: "ly", question: "AI nói: Phản ứng phân hạch là sự kết hợp của hai hạt nhân nhẹ thành một hạt nhân nặng hơn ở nhiệt độ rất cao.", correctAnswer: "AI đang nói dối.", detailedExplanation: "AI nhầm với **phản ứng nhiệt hạch**. Phản ứng phân hạch là hạt nhân rất nặng vỡ ra thành các hạt nhân trung bình." },
+        { grade: "12", subject: "ly", question: "AI nói: Tia Gamma (\\(\\gamma\\)) là dòng hạt mang điện tích âm truyền với tốc độ ánh sáng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tia gamma là sóng điện từ (bản chất photon), **không mang điện**. Tia \\(\\beta^-\\dots\\) mới là dòng electron mang điện âm." },
+        { grade: "12", subject: "ly", question: "AI nói: Nhiệt dung riêng của một chất là nhiệt lượng cần thiết để làm 1 kg chất đó tăng thêm 1°C.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định nghĩa nhiệt dung riêng \\(c = Q / (m \\cdot \\Delta t)\\)." },
+        { grade: "12", subject: "ly", question: "AI nói: Trong quá trình nóng chảy của chất rắn kết tinh, nhiệt độ của chất tăng liên tục theo thời gian đun.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Với chất rắn kết tinh, trong suốt quá trình nóng chảy, **nhiệt độ giữ không đổi** cho đến khi tan chảy hoàn toàn." },
+        { grade: "12", subject: "ly", question: "AI nói: Hằng số Boltzmann liên hệ giữa nhiệt độ tuyệt đối và động năng trung bình của chuyển động nhiệt phân tử.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Công thức động năng trung bình \\(\\bar{E}_d = \\frac{3}{2} k_B T\\)." },
+        { grade: "12", subject: "ly", question: "AI nói: Nửa đời an toàn (chu kỳ bán rã) của một chất phóng xạ phụ thuộc vào nhiệt độ và áp suất môi trường ngoài.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Chu kỳ bán rã T là đặc tính nội tại của hạt nhân, **hoàn toàn không phụ thuộc** vào điều kiện môi trường bên ngoài." },
+        { grade: "12", subject: "ly", question: "AI nói: Máy biến áp có thể biến đổi cả điện áp dòng điện một chiều (DC) không đổi.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Máy biến áp hoạt động dựa trên cảm ứng điện từ, yêu cầu dòng điện biến thiên (AC). Dòng DC từ thông không đổi nên không biến áp được." },
+
+        // ================= HÓA HỌC =================
+        // LỚP 10 - HÓA HỌC
+        { grade: "10", subject: "hoa", question: "AI nói: Các nguyên tố trong cùng một nhóm A có cùng số electron lớp ngoài cùng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Số thứ tự nhóm A = Số electron ở lớp ngoài cùng của nguyên tử." },
+        { grade: "10", subject: "hoa", question: "AI nói: Bán kính nguyên tử của các nguyên tố trong cùng một chu kỳ có xu hướng tăng dần từ trái sang phải.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Trong một chu kỳ từ trái sang phải, điện tích hạt nhân tăng dần làm lực hút với lớp electron tăng, do đó bán kính nguyên tử **giảm dần**." },
+        { grade: "10", subject: "hoa", question: "AI nói: Liên kết đôi gồm 1 liên kết \\(\\sigma\\) (sigma) và 1 liên kết \\(\\pi\\) (pi).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng cấu tạo liên kết đôi theo lý thuyết liên kết hóa học." },
+        { grade: "10", subject: "hoa", question: "AI nói: Quá trình oxy hóa là quá trình nhận electron, làm giảm số oxy hóa của nguyên tố.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Quá trình oxy hóa là quá trình **nhường (cho) electron**, làm tăng số oxy hóa. AI nhầm với quá trình khử." },
+        { grade: "10", subject: "hoa", question: "AI nói: Phản ứng tỏa nhiệt là phản ứng hóa học có biến thiên enthalpy chuẩn \\(\\Delta_r H^0_{298} < 0\\).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Phản ứng tỏa nhiệt giải phóng năng lượng ra môi trường nên \\(\\Delta H < 0\\)." },
+        { grade: "10", subject: "hoa", question: "AI nói: Tốc độ phản ứng hóa học luôn giảm khi tăng nhiệt độ của hệ phản ứng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Khi tăng nhiệt độ, các phân tử chuyển động nhanh hơn, số va chạm hiệu quả tăng, làm tốc độ phản ứng **tăng lên**." },
+        { grade: "10", subject: "hoa", question: "AI nói: Halogen có độ âm điện lớn và là những chất có tính oxy hóa mạnh.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Nhóm VIIA có 7 e lớp ngoài cùng, bán kính nhỏ nên tính oxy hóa rất mạnh." },
+        { grade: "10", subject: "hoa", question: "AI nói: Khí Chlorine (\\(\\text{Cl}_2\\)) ẩm có tính tẩy màu là do tạo ra Acid Hydrochloric (HCl) có tính tẩy rửa mạnh.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tính tẩy màu là do Acid Hypochlorous (HClO) sinh ra có tính oxy hóa rất mạnh, không phải do HCl." },
+        { grade: "10", subject: "hoa", question: "AI nói: Liên kết ionic được hình thành bởi lực hút tĩnh điện giữa các ion mang điện tích trái dấu.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Khái niệm chuẩn xác về liên kết ion." },
+        { grade: "10", subject: "hoa", question: "AI nói: Trong nguyên tử, các electron ở lớp K nằm xa hạt nhân nhất và có năng lượng cao nhất.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Lớp K (n=1) là lớp **gần hạt nhân nhất** và có mức năng lượng thấp nhất." },
+        { grade: "10", subject: "hoa", question: "AI nói: Xu hướng biến đổi tính acid của các hydroxit trong một chu kỳ là tăng dần từ trái sang phải.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Trong chu kỳ từ trái sang phải, tính phi kim tăng dần dẫn đến tính acid của hydroxit tương ứng tăng dần." },
+        { grade: "10", subject: "hoa", question: "AI nói: Phản ứng tự oxy hóa - tự khử là phản ứng trong đó chất oxy hóa và chất khử thuộc về hai chất hoàn toàn khác nhau.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Phản ứng tự oxy hóa - khử có nguyên tố thay đổi số oxy hóa vừa tăng vừa giảm nằm trong **cùng một chất**." },
+        { grade: "10", subject: "hoa", question: "AI nói: Chất xúc tác làm tăng tốc độ phản ứng và bị tiêu hao hoàn toàn sau phản ứng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Chất xúc tác làm tăng tốc độ phản ứng nhưng **không bị tiêu hao** về khối lượng và bản chất hóa học sau phản ứng." },
+        { grade: "10", subject: "hoa", question: "AI nói: Năng lượng liên kết càng lớn thì liên kết hóa học đó càng bền vững.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Năng lượng liên kết Eb đo lượng năng lượng cần để phá vỡ liên kết; Eb càng cao liên kết càng bền." },
+        { grade: "10", subject: "hoa", question: "AI nói: Số oxy hóa của Oxygen trong hợp chất \\(\\text{OF}_2\\) là -2.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Do Fluorine có độ âm điện lớn hơn Oxygen, F có số oxy hóa -1, dẫn đến Oxygen trong \\(\\text{OF}_2\\) có số oxy hóa là +2." },
+
+        // LỚP 11 - HÓA HỌC
+        { grade: "11", subject: "hoa", question: "AI nói: Phản ứng thuận nghịch là phản ứng xảy ra đồng thời theo hai chiều ngược nhau trong cùng điều kiện.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định nghĩa phản ứng cân bằng hóa học thuận nghịch." },
+        { grade: "11", subject: "hoa", question: "AI nói: Theo thuyết Brønsted-Lowry, acid là chất có khả năng nhận proton (\\(\\text{H}^+\\)).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Acid là chất **cho proton (\\(\\text{H}^+\\))**. Chất nhận proton là base." },
+        { grade: "11", subject: "hoa", question: "AI nói: Dung dịch có pH < 7 ở 25°C mang tính acid và làm quỳ tím chuyển màu đỏ.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Môi trường acid có \\([\\text{H}^+] > 10^{-7}\\text{ M} \\Rightarrow \\text{pH} < 7\\)." },
+        { grade: "11", subject: "hoa", question: "AI nói: Khí Nitrogen (\\(\\text{N}_2\\)) trơ ở nhiệt độ thường là do trong phân tử có liên kết đôi rất bền.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nitrogen trơ ở nhiệt độ thường do phân tử có **liên kết ba** (\\(\\text{N}\\equiv\\text{N}\\)) với năng lượng liên kết rất lớn (945 kJ/mol)." },
+        { grade: "11", subject: "hoa", question: "AI nói: Sulfur dioxide (\\(\\text{SO}_2\\)) vừa có tính oxy hóa vừa có tính khử.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Sulfur trong \\(\\text{SO}_2\\) có số oxy hóa trung gian +4, có thể giảm xuống 0, -2 (tính oxy hóa) hoặc tăng lên +6 (tính khử)." },
+        { grade: "11", subject: "hoa", question: "AI nói: Tất cả các hydrocarbon thơm đều làm mất màu dung dịch \\(\\text{KMnO}_4\\) ở nhiệt độ thường.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Benzene không làm mất màu \\(\\text{KMnO}_4\\) dù đun nóng. Toluene chỉ làm mất màu khi đun nóng." },
+        { grade: "11", subject: "hoa", question: "AI nói: Ankan (Alkane) chỉ tham gia phản ứng thế, không tham gia phản ứng tách.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Alkane còn tham gia phản ứng tách (tách hydrogen hoặc cracking ở nhiệt độ cao)." },
+        { grade: "11", subject: "hoa", question: "AI nói: Alcohol bậc III là alcohol có nhóm -OH liên kết với carbon liên kết trực tiếp với 3 carbon khác.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Khái niệm đúng về bậc của alcohol." },
+        { grade: "11", subject: "hoa", question: "AI nói: Phenol có tính acid mạnh hơn nấc 1 của \\(\\text{H}_2\\text{CO}_3\\) nên làm đổi màu quỳ tím thành đỏ.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Phenol có tính acid **rất yếu**, yếu hơn cả \\(\\text{H}_2\\text{CO}_3\\) và không làm đổi màu quỳ tím." },
+        { grade: "11", subject: "hoa", question: "AI nói: Aldehyde có tính khử khi tác dụng với \\(\\text{AgNO}_3\\) trong dung dịch \\(\\text{NH}_3\\) sinh ra bạc kim loại.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Phản ứng tráng bạc đặc trưng chuyển nhóm -CHO thành acid/muối và khử \\(\\text{Ag}^+\\) thành Ag." },
+        { grade: "11", subject: "hoa", question: "AI nói: Khí Ammonia (\\(\\text{NH}_3\\)) làm xanh giấy quỳ tím ẩm do tạo ra dung dịch có tính base.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "\\(\\text{NH}_3 + \\text{H}_2\\text{O} \\rightarrow \\text{NH}_4^+ + \\text{OH}^-\\), ion \\(\\text{OH}^-\\) tạo môi trường base." },
+        { grade: "11", subject: "hoa", question: "AI nói: Đốt cháy hoàn toàn một alkene luôn thu được số mol \\(\\text{CO}_2\\) lớn hơn số mol \\(\\text{H}_2\\text{O}\\).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Công thức chung Alkene là \\(\\text{C}_n\\text{H}_{2n}\\). Phản ứng cháy cho n \\(\\text{CO}_2\\) và n \\(\\text{H}_2\\text{O}\\), tức là số mol \\(\\text{CO}_2\\) **bằng** số mol \\(\\text{H}_2\\text{O}\\)." },
+        { grade: "11", subject: "hoa", question: "AI nói: Phản ứng cộng nước vào acetylene với xúc tác \\(\\text{HgSO}_4/\\text{H}_2\\text{SO}_4\\) thu được sản phẩm chính là ethanol.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Cộng nước vào acetylene thu được Enol không bền, ngay lập tức chuyển thành **acetaldehyde** (\\(\\text{CH}_3\\text{CHO}\\))." },
+        { grade: "11", subject: "hoa", question: "AI nói: Acid carboxylic có nhiệt độ sôi cao hơn alcohol có cùng số nguyên tử carbon do liên kết hydrogen liên phân tử bền hơn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Dạng nhị phân (dimer) bền vững của nhóm carboxylic tạo lực liên kết hydrogen lớn hơn alcohol." },
+        { grade: "11", subject: "hoa", question: "AI nói: Phổ hồng ngoại (IR) dùng để xác định phân tử khối của hợp chất hữu cơ.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Phổ IR dùng để xác định **nhóm chức**. Phổ khối lượng (MS) mới dùng xác định phân tử khối." },
+
+        // LỚP 12 - HÓA HỌC
+        { grade: "12", subject: "hoa", question: "AI nói: Ester có nhiệt độ sôi thấp hơn alcohol và acid carboxylic có cùng khối lượng phân tử vì không có liên kết hydrogen liên phân tử.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Do nhóm ester không còn nguyên tử H linh động để tạo liên kết hydrogen giữa các phân tử ester với nhau." },
+        { grade: "12", subject: "hoa", question: "AI nói: Chất béo là triester của glycerol với các acid monocarboxylic có xích carbon dài không phân nhánh.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa chính xác về Lipid (Triglyceride)." },
+        { grade: "12", subject: "hoa", question: "AI nói: Glucose và Fructose là hai chất đồng phân của nhau và đều có khả năng tham gia phản ứng tráng bạc.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Cả hai đều có CTHH \\(\\text{C}_6\\text{H}_{12}\\text{O}_6\\). Trong môi trường kiềm, Fructose chuyển hóa thành Glucose nên đều tráng bạc." },
+        { grade: "12", subject: "hoa", question: "AI nói: Cellulose có cấu trúc mạch phân nhánh do các liên kết \\(\\alpha\\)-1,4-glycoside tạo thành.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Cellulose có cấu trúc **mạch không phân nhánh** gồm các mắt xích \\(\\beta\\)-1,4-glycoside." },
+        { grade: "12", subject: "hoa", question: "AI nói: Amine bậc hai là amine mà nguyên tử N liên kết với hai nguyên tử carbon.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa đúng theo phân loại bậc amine." },
+        { grade: "12", subject: "hoa", question: "AI nói: Peptide được tạo thành từ các gốc \\(\\beta\\)-amino acid liên kết với nhau bằng liên kết peptide.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Peptide phải được tạo từ các gốc **\\(\\alpha\\)-amino acid**, không phải \\(\\beta\\)-amino acid." },
+        { grade: "12", subject: "hoa", question: "AI nói: Polymer trùng hợp được tổng hợp từ các monomer chứa liên kết bội hoặc vòng kém bền.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Điều kiện về cấu tạo monomer để tham gia phản ứng trùng hợp." },
+        { grade: "12", subject: "hoa", question: "AI nói: Kim loại dẻo nhất, dẫn điện tốt nhất và dẫn nhiệt tốt nhất đều là Vàng (Au).", correctAnswer: "AI đang nói dối.", detailedExplanation: "Kim loại dẫn điện và dẫn nhiệt tốt nhất là **Bạc (Ag)**. Vàng chỉ dẻo nhất." },
+        { grade: "12", subject: "hoa", question: "AI nói: Trong dãy hoạt động hóa học, kim loại đứng trước đẩy được kim loại đứng sau ra khỏi dung dịch muối.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Quy tắc chuẩn về tính chất hóa học của kim loại và muối." },
+        { grade: "12", subject: "hoa", question: "AI nói: Sự ăn mòn điện hóa xuất hiện khi hai kim loại khác nhau tiếp xúc trực tiếp và cùng nằm trong dung dịch chất điện giải.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng đủ 3 điều kiện ăn mòn điện hóa." },
+        { grade: "12", subject: "hoa", question: "AI nói: Xà phòng hóa chất béo bằng dung dịch NaOH thu được Glycerol và muối acid béo.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Triglyceride + 3NaOH \\(\\rightarrow\\) Glycerol + 3Muối (Xà phòng)." },
+        { grade: "12", subject: "hoa", question: "AI nói: Protein bị đông tụ khi chịu tác dụng của nhiệt độ cao hoặc acid/base mạnh.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tính chất vật lý-hóa học đặc trưng làm biến tính và đông tụ protein." },
+        { grade: "12", subject: "hoa", question: "AI nói: Kim loại nhôm (Al) thụ động hóa trong dung dịch \\(\\text{HNO}_3\\) đặc nóng và \\(\\text{H}_2\\text{SO}_4\\) đặc nóng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nhôm bị thụ động hóa trong dung dịch **đặc nguội**, đun nóng phản ứng mãnh liệt." },
+        { grade: "12", subject: "hoa", question: "AI nói: Tất cả các hợp chất phức chất của kim loại chuyển tiếp đều không có màu.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Đa số các phức chất của kim loại chuyển tiếp d (như \\(\\text{Cu}^{2+}, \\text{Fe}^{3+}\\)) có màu sắc rất đặc trưng." },
+        { grade: "12", subject: "hoa", question: "AI nói: Cao su lưu hóa có tính đàn hồi, chịu nhiệt và lâu mòn hơn cao su thường nhờ các cầu nối disulfide (-S-S-).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Mạng không gian liên kết disulfide giúp nâng cao độ bền cơ lý của cao su." },
+
+        // ================= SINH HỌC =================
+        // LỚP 10 - SINH HỌC
+        { grade: "10", subject: "sinh", question: "AI nói: Tế bào là đơn vị cấu trúc và chức năng cơ bản của mọi sinh vật sống.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng luận điểm trung tâm của Học thuyết Tế bào." },
+        { grade: "10", subject: "sinh", question: "AI nói: Tế bào nhân sơ (Bacteria) đã có nhân hoàn chỉnh được bao bọc bởi màng nhân.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tế bào nhân sơ chưa có màng nhân, vùng chứa DNA chỉ gọi là **vùng nhân** (nucleoid)." },
+        { grade: "10", subject: "sinh", question: "AI nói: Tấm màng sinh chất cấu tạo theo mô hình khảm động gồm lớp kép phospholipid và các protein.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Mô hình Singer & Nicolson về cấu trúc màng tế bào." },
+        { grade: "10", subject: "sinh", question: "AI nói: Vận chuyển thụ động là phương thức vận chuyển chất qua màng từ nơi có nồng độ thấp đến nơi có nồng độ cao và tiêu tốn ATP.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Vận chuyển thụ động đi từ nơi nồng độ **cao đến thấp** và **không tốn ATP**." },
+        { grade: "10", subject: "sinh", question: "AI nói: Ty thể là nhà máy năng lượng của tế bào, nơi diễn ra quá trình hô hấp tế bào tạo ra ATP.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng chức năng sinh học của bào quan ty thể." },
+        { grade: "10", subject: "sinh", question: "AI nói: Quang hợp là quá trình biến đổi năng lượng hóa học thành năng lượng ánh sáng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Quang hợp chuyển năng lượng **ánh sáng** (quang năng) thành **hóa năng** tích lũy trong hợp chất hữu cơ." },
+        { grade: "10", subject: "sinh", question: "AI nói: Nguyên phân là hình thức phân chia tế bào sinh dưỡng giúp tạo ra hai tế bào con có bộ đơn bội n.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nguyên phân tạo ra các tế bào con giữ nguyên bộ 2n của tế bào mẹ (giảm phân mới tạo ra n)." },
+        { grade: "10", subject: "sinh", question: "AI nói: Enzyme là chất xúc tác sinh học có bản chất chủ yếu là protein, làm tăng tốc độ phản ứng mà không bị biến đổi sau phản ứng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa đúng về khái niệm và đặc tính của enzyme." },
+        { grade: "10", subject: "sinh", question: "AI nói: Khai niệm vi sinh vật bao gồm cả các động vật có kích thước lớn như giun đất và côn trùng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Vi sinh vật là những sinh vật có kích thước nhỏ bé, chỉ quan sát được dưới kính hiển vi." },
+        { grade: "10", subject: "sinh", question: "AI nói: Lưới nội chất hạt có gắn các hạt ribosome trên bề mặt và giữ nhiệm vụ tổng hợp protein.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng cấu trúc và chức năng phân biệt giữa lưới nội chất hạt và trơn." },
+        { grade: "10", subject: "sinh", question: "AI nói: Nước là dung môi hòa tan nhiều chất và chiếm tỷ lệ lớn trong khối lượng cơ thể sống.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng vai trò sinh học quan trọng của nước." },
+        { grade: "10", subject: "sinh", question: "AI nói: Bào quan Lục lạp có chứa ADN vòng nhỏ riêng tương tự như ở vi khuẩn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Thuyết nội cộng sinh: Lục lạp và Ty thể chứa ADN vòng riêng giống prokaryote." },
+        { grade: "10", subject: "sinh", question: "AI nói: Pha sáng của quang hợp diễn ra tại chất nền (stroma) của lục lạp.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Pha sáng diễn ra tại **màng thylakoid**. Pha tối mới diễn ra trong chất nền (stroma)." },
+        { grade: "10", subject: "sinh", question: "AI nói: Chu kỳ tế bào gồm hai giai đoạn chính: kỳ trung gian và quá trình phân bào (M).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Phân chia chu kỳ tế bào chuẩn học thuật." },
+        { grade: "10", subject: "sinh", question: "AI nói: Virus là một dạng sống hoàn chỉnh có cấu tạo tế bào nhân sơ đặc trưng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Virus **chưa có cấu tạo tế bào**, chỉ gồm lõi acid nucleic và vỏ protein." },
+
+        // LỚP 11 - SINH HỌC
+        { grade: "11", subject: "sinh", question: "AI nói: Nước và khoáng từ đất được rễ cây hấp thụ chủ yếu qua các tế bào lông hút.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng cơ chế hấp thụ dinh dưỡng khoáng ở thực vật." },
+        { grade: "11", subject: "sinh", question: "AI nói: Mạch gỗ (Xylem) vận chuyển chất hữu cơ tổng hợp từ lá xuống các bộ phận khác của cây.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Mạch gỗ vận chuyển **nước và ion khoáng** từ rễ lên lá. Mạch rây mới vận chuyển chất hữu cơ từ lá xuống." },
+        { grade: "11", subject: "sinh", question: "AI nói: Quang hợp ở thực vật C4 và CAM có cơ chế cố định \\(\\text{CO}_2\\) hai lần để thích nghi với điều kiện sống khó khăn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng điểm việt hóa thích nghi sinh học của nhóm thực vật C4 và CAM." },
+        { grade: "11", subject: "sinh", question: "AI nói: Hô hấp ở thực vật giải phóng năng lượng dưới dạng ATP và nhiệt năng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Quá trình phân giải carbohydrate tích lũy năng lượng ATP duy trì hoạt động sống." },
+        { grade: "11", subject: "sinh", question: "AI nói: Ở người, tiêu hóa hóa học thức ăn chỉ diễn ra duy nhất tại dạ dày.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tiêu hóa hóa học diễn ra từ khoang miệng, dạ dày và **mạnh mẽ nhất ở ruột nhỏ**." },
+        { grade: "11", subject: "sinh", question: "AI nói: Tim người hoạt động tự động là do có hệ dẫn truyền tim gồm nút xoang nhĩ, nút nhĩ thất, bó His và mạng Purkinje.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tính tự động của tim do hệ dẫn truyền tự phát xung nhịp." },
+        { grade: "11", subject: "sinh", question: "AI nói: Huyết áp đạt giá trị lớn nhất ở tĩnh mạch và nhỏ nhất ở động mạch chủ.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Huyết áp lớn nhất ở **động mạch chủ** (gần tim nhất) và giảm dần, nhỏ nhất ở **tĩnh mạch chủ**." },
+        { grade: "11", subject: "sinh", question: "AI nói: Xung thần kinh lan truyền trên sợi thần kinh có bao myelin nhanh hơn trên sợi thần kinh không có bao myelin nhờ cách nhảy bót.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Sự dẫn truyền nhảy bót qua các eo Ranvier làm tăng tốc độ xung thần kinh." },
+        { grade: "11", subject: "sinh", question: "AI nói: Tập tính bẩm sinh là loại tập tính sinh ra đã có, do di truyền và mang tính đặc trưng cho loài.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng bản chất của tập tính bẩm sinh." },
+        { grade: "11", subject: "sinh", question: "AI nói: Phytohormone Auxin kích thích sự sinh trưởng vươn dài của tế bào và gây nên hướng động dương với ánh sáng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Auxin phân bố sang phía tối làm phía tối dãn dài nhanh hơn làm cây cong về phía ánh sáng." },
+        { grade: "11", subject: "sinh", question: "AI nói: Sự mở của khí khổng diễn ra khi tế bào hạt đậu tích lũy nước làm vách mỏng căng ra kéo vách dày cong theo.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng cơ chế đóng mở khí khổng ở lá." },
+        { grade: "11", subject: "sinh", question: "AI nói: Sinh trưởng thứ cấp ở cây hai lá mầm nhờ hoạt động của mô phân sinh đỉnh làm tăng chiều dài của thân.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Sinh trưởng thứ cấp nhờ **mô phân sinh bên** làm tăng đường kính (bề ngang) của thân." },
+        { grade: "11", subject: "sinh", question: "AI nói: Động vật ăn thực vật thường có ống tiêu hóa ngắn hơn so với động vật ăn thịt.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Thức ăn thực vật chứa cellulose khó tiêu hóa nên động vật ăn thực vật có ống tiêu hóa **rất dài**." },
+        { grade: "11", subject: "sinh", question: "AI nói: Cân bằng nội môi là giữ cho các điều kiện lý - hóa của môi trường trong cơ thể luôn ổn định.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Khái niệm cốt lõi về Homeostasis." },
+        { grade: "11", subject: "sinh", question: "AI nói: Cây ngắn ngày chỉ nở hoa khi thời gian chiếu sáng trong ngày lớn hơn một giá trị giới hạn nhất định.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Cây ngắn ngày ra hoa khi thời gian chiếu sáng trong ngày **ngắn hơn** thời gian tiêu chuẩn." },
+
+        // LỚP 12 - SINH HỌC
+        { grade: "12", subject: "sinh", question: "AI nói: Mã di truyền có tính thoái hóa, nghĩa là một bộ ba mã hóa có thể mã hóa cho nhiều loại amino acid khác nhau.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tính thoái hóa nghĩa là **nhiều bộ ba khác nhau cùng mã hóa cho một loại amino acid**." },
+        { grade: "12", subject: "sinh", question: "AI nói: Quá trình tái bản DNA diễn ra theo nguyên tắc bổ sung và nguyên tắc bán bảo tồn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng hai nguyên tắc nền tảng của nhân đôi DNA." },
+        { grade: "12", subject: "sinh", question: "AI nói: Đột biến gen là những biến đổi trong cấu trúc của gen, liên quan đến một hoặc một số cặp nucleotide.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Khái niệm chuẩn xác về đột biến gen." },
+        { grade: "12", subject: "sinh", question: "AI nói: Khái niệm Thể đa bội chỉ xuất hiện ở động vật và hoàn toàn không thể xảy ra ở thực vật.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Đa bội thể rất phổ biến ở thực vật, ngược lại ở động vật thường gây chết." },
+        { grade: "12", subject: "sinh", question: "AI nói: Quy luật phân ly độc lập của Mendel áp dụng cho các gen nằm trên cùng một cặp nhiễm sắc thể tương đồng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Phân ly độc lập chỉ xảy ra khi các gen nằm trên **các cặp nhiễm sắc thể tương đồng khác nhau**." },
+        { grade: "12", subject: "sinh", question: "AI nói: Hiện tượng hoán vị gen làm tăng xuất hiện các biến dị tổ hợp ở đời con.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Sự trao đổi chéo giữa các chromatid non-sister tạo ra tổ hợp gen mới." },
+        { grade: "12", subject: "sinh", question: "AI nói: Di truyền liên kết với giới tính là hiện tượng các gen quy định tính trạng thường nằm trên nhiễm sắc thể giới tính X hoặc Y.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa đúng di truyền liên kết giới tính." },
+        { grade: "12", subject: "sinh", question: "AI nói: Theo Darwin, nguyên liệu chính của quá trình tiến hóa là các đột biến gen và đột biến nhiễm sắc thể.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Darwin cho rằng nguyên liệu là các **biến dị cá thể**. Thuyết tiến hóa hiện đại mới khẳng định đột biến là nguyên liệu sơ cấp." },
+        { grade: "12", subject: "sinh", question: "AI nói: Nhân tố tiến hóa Đột biến làm thay đổi tần số allele và thành phần kiểu gen của quần thể rất chậm.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tần số đột biến tự nhiên rất thấp (\\(10^{-6} - 10^{-4}\\)) nên làm đổi tần số allele chậm." },
+        { grade: "12", subject: "sinh", question: "AI nói: Quần thể giao phối ngẫu nhiên đạt trạng thái cân bằng di truyền khi thỏa mãn định luật Hardy-Weinberg.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng lý thuyết di truyền học quần thể." },
+        { grade: "12", subject: "sinh", question: "AI nói: Khái niệm Ổ sinh thái trùng hoàn toàn với Khái niệm Nơi ở của loài.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nơi ở chỉ là địa điểm sống. Ổ sinh thái là 'cách sống', bao gồm tất cả các giới hạn sinh thái của loài đó." },
+        { grade: "12", subject: "sinh", question: "AI nói: Chuỗi thức ăn luôn bắt đầu bằng sinh vật phân giải và kết thúc bằng sinh vật sản xuất.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Chuỗi thức ăn chuẩn bắt đầu từ **Sinh vật sản xuất** (cây xanh) \\(\\rightarrow\\) Sinh vật tiêu thụ \\(\\rightarrow\\) Sinh vật phân giải." },
+        { grade: "12", subject: "sinh", question: "AI nói: Mối quan hệ Cộng sinh là sự hợp tác giữa hai loài trong đó cả hai đều có lợi và nhất thiết phải có nhau.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Phân biệt đúng giữa cộng sinh (bắt buộc) và hợp tác (không bắt buộc)." },
+        { grade: "12", subject: "sinh", question: "AI nói: Công nghệ gen là quy trình tạo ra những tế bào hoặc sinh vật có gen bị biến đổi hoặc có thêm gen mới.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định nghĩa ứng dụng công nghệ di truyền." },
+        { grade: "12", subject: "sinh", question: "AI nói: Nhóm sinh vật ưu thế trong quần xã là nhóm loài có vai trò kiểm soát và duy trì sự cân bằng của toàn bộ quần xã dù số lượng cực ít.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Loài **ưu thế** phải có số lượng đông, sinh khối lớn. Loài có vai trò kiểm soát dù số lượng ít gọi là **loài chủ chốt**." },
+
+        // ================= NGỮ VĂN =================
+        // LỚP 10 - NGỮ VĂN
+        { grade: "10", subject: "van", question: "AI nói: Thần thoại là những truyện kể dân gian ra đời vào thời hiện đại nhằm giải thích các hiện tượng khoa học công nghệ.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Thần thoại ra đời từ **thời cổ đại**, phản ánh tư duy hình tượng của con người thời kỳ sơ khai về vũ trụ và tự nhiên." },
+        { grade: "10", subject: "van", question: "AI nói: Sử thi thần thoại như 'Thần Trụ Trời' hay 'Săn bắt nai' nhằm tôn vinh những người anh hùng cộng đồng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Sử thi có chức năng ca ngợi chiến công của anh hùng đại diện cho sức mạnh toàn thể cộng đồng." },
+        { grade: "10", subject: "van", question: "AI nói: Văn bản nghị luận luận thuyết bắt buộc phải gồm ba yếu tố cốt lõi: Luận điểm, Luận cứ và Luận chứng (Dẫn chứng).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đầy đủ các thành tố lập luận cơ bản của văn bản nghị luận." },
+        { grade: "10", subject: "van", question: "AI nói: Văn bản 'Bình Ngô đại cáo' của Nguyễn Trãi được viết bằng chữ Quốc ngữ theo thể thơ tự do.", correctAnswer: "AI đang nói dối.", detailedExplanation: "'Bình Ngô đại cáo' được viết bằng **chữ Hán**, thể văn **Biền văn** (cáo)." },
+        { grade: "10", subject: "van", question: "AI nói: Tác phẩm 'Truyện Kiều' của Nguyễn Du được sáng tác bằng chữ Nôm, sử dụng thể thơ lục bát.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng ngữ liệu lịch sử văn học Việt Nam." },
+        { grade: "10", subject: "van", question: "AI nói: Trong đoạn trích 'Trao duyên', Thúy Kiều đã chủ động trao kỷ vật tình yêu cho Thúy Vân trong trạng thái tâm lý thanh thản và vui vẻ.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tâm trạng Thúy Kiều vô cùng đau đớn, giằng xé nội tâm khi phải từ bỏ tình yêu sâu nặng với Kim Trọng vì nghĩa trả hiếu." },
+        { grade: "10", subject: "van", question: "AI nói: Điệp từ là biện pháp tu từ nhắc lại một từ hoặc cụm từ nhằm nhấn mạnh cảm xúc hoặc ý nghĩa.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định nghĩa biện pháp tu từ điệp ngữ/điệp từ." },
+        { grade: "10", subject: "van", question: "AI nói: Kịch bản văn học là tác phẩm hoàn chỉnh không cần thông qua nghệ thuật biểu diễn trên sân khấu vẫn chuyển tải đầy đủ xung đột kịch.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Bản thân kịch bản văn học có giá trị độc lập như một tác phẩm văn học nghe-nhìn." },
+        { grade: "10", subject: "van", question: "AI nói: Nhân vật trữ tình trong thơ trữ tình luôn luôn là chính bản thân tác giả ngoài đời thực.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nhân vật trữ tình là một 'vai diễn' nghệ thuật do tác giả sáng tạo ra." },
+        { grade: "10", subject: "van", question: "AI nói: Phong cách ngôn ngữ nghệ thuật mang tính hình tượng, tính truyền cảm và tính cá thể hóa.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng 3 đặc trưng cơ bản của phong cách ngôn ngữ văn chương nghệ thuật." },
+        { grade: "10", subject: "van", question: "AI nói: Cốt truyện đơn tuyến là cốt truyện chỉ có một chuỗi sự kiện duy nhất xoay quanh một hoặc một vài nhân vật chính.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Khái niệm chuẩn về cấu trúc cốt truyện." },
+        { grade: "10", subject: "van", question: "AI nói: Thơ tự do là thể thơ bắt buộc các câu thơ phải có số tiếng (số chữ) bằng nhau trong toàn bài.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Thơ tự do **không bị giới hạn** số tiếng trong câu, không bắt buộc tuân theo niêm luật vần nhịp cố định." },
+        { grade: "10", subject: "van", question: "AI nói: Văn bản thông tin trình bày thông tin theo trật tự thời gian giúp người đọc dễ theo dõi diễn biến của sự việc.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Một trong những cấu trúc trình bày chuẩn của văn bản thông tin." },
+        { grade: "10", subject: "van", question: "AI nói: Ẩn dụ là gọi tên sự vật, hiện tượng này bằng tên sự vật, hiện tượng khác có nét tương cận (gần gũi).", correctAnswer: "AI đang nói dối.", detailedExplanation: "AI nhầm với Hoán dụ. Ẩn dụ dựa trên nét **tương đồng** (giống nhau), còn Hoán dụ mới dựa trên nét **tương cận**." },
+        { grade: "10", subject: "van", question: "AI nói: Trong văn bản nghị luận, người viết có thể đưa ra cảm xúc cá nhân nhưng phải dựa trên lập luận logic và bằng chứng xác thực.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Yêu cầu kết hợp giữa lý lẽ và yếu tố biểu cảm trong văn nghị luận." },
+
+        // LỚP 11 - NGỮ VĂN
+        { grade: "11", subject: "van", question: "AI nói: Bi kịch là thể loại kịch phản ánh xung đột gay gắt giữa nhân vật có khát vọng cao đẹp với thực tại bất lợi, dẫn đến kết cục đau thương.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng bản chất đặc trưng thể loại bi kịch." },
+        { grade: "11", subject: "van", question: "AI nói: Truyện thơ Nôm bình dân như 'Phạm Tải - Ngọc Hoa' thường được viết bởi các tri thức Nho học bác học nổi tiếng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Truyện thơ Nôm bình dân do khuyết danh tầng lớp bình dân sáng tác." },
+        { grade: "11", subject: "van", question: "AI nói: Đề tài của tác phẩm văn học là phạm vi đời sống được thể hiện trong tác phẩm.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Khái niệm chuẩn Lý luận văn học lớp 11." },
+        { grade: "11", subject: "van", question: "AI nói: Nguyễn Tuân là nhà văn nổi tiếng với phong cách nghệ thuật ngông, luôn khám phá thế giới ở phương diện văn hóa nghệ thuật.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng nét đặc trưng nhất trong phong cách sáng tác của Nguyễn Tuân." },
+        { grade: "11", subject: "van", question: "AI nói: Đoạn trích 'Chí Phèo' của Nam Cao thể hiện tư tưởng nhân đạo qua việc miêu tả Chí Phèo là kẻ bẩm sinh đã mang bản chất lưu manh, độc ác.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nam Cao khẳng định Chí Phèo vốn là nông dân lương thiện bị xã hội thực dân phong kiến tha hóa." },
+        { grade: "11", subject: "van", question: "AI nói: Thơ Mới (1932-1945) là cuộc cách mạng giải phóng cái 'Tôi' cá nhân ra khỏi những quy phạm chặt chẽ của thơ trung đại.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng bản chất phong trào Thơ Mới trong lịch sử văn học." },
+        { grade: "11", subject: "van", question: "AI nói: Ngôn ngữ nói và ngôn ngữ viết hoàn toàn giống nhau về từ ngữ và cấu trúc câu.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Ngôn ngữ nói dùng khẩu ngữ, từ chêm xen; ngôn ngữ viết chuẩn hóa về chính tả, cú pháp." },
+        { grade: "11", subject: "van", question: "AI nói: Biện pháp tu từ Đối trong thơ thất ngôn bát cú đường luật bắt buộc xuất hiện ở hai câu thực (3-4) và hai câu luận (5-6).", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Luật thơ Đường bắt buộc thực hiện phép đối ở hai cặp câu này." },
+        { grade: "11", subject: "van", question: "AI nói: Văn bản thuyết minh tổng hợp có thể kết hợp yếu tố miêu tả, tự sự và biểu cảm để gia tăng tính hấp dẫn.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng định hướng đổi mới phương pháp làm văn thuyết minh GDPT 2018." },
+        { grade: "11", subject: "van", question: "AI nói: Bài thơ 'Tràng Giang' của Huy Cận mang nỗi buồn sầu cô đơn của cái Tôi Thơ Mới trước không gian vũ trụ bao la.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Cảm hứng thế sự hòa lẫn nỗi buồn hoài cổ nhân thế trong 'Tràng Giang'." },
+        { grade: "11", subject: "van", question: "AI nói: Tùy bút là thể loại thuộc ký, tôn trọng sự thật khách quan tuyệt đối và cấm người viết bộc lộ cảm xúc riêng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Tùy bút cho phép cái 'Tôi' tác giả được tự do bộc lộ suy ngẫm, cảm xúc." },
+        { grade: "11", subject: "van", question: "AI nói: Thơ tượng trưng đề cao việc dùng âm thanh, nhịp điệu và gợi mở hơn là tả thực chi tiết.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đặc trưng trường phái thơ Tượng trưng." },
+        { grade: "11", subject: "van", question: "AI nói: Câu hỏi tu từ là câu hỏi đặt ra nhằm mục đích duy nhất là tìm kiếm thông tin phản hồi từ người nghe.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Câu hỏi tu từ dùng để bộc lộ cảm xúc, nhấn mạnh khẳng định hoặc phủ định, không dùng để tìm câu trả lời." },
+        { grade: "11", subject: "van", question: "AI nói: Yếu tố kì ảo trong truyện ngắn hiện đại hoàn toàn làm mất đi tính thực tế của tác phẩm.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Yếu tố kì ảo trong truyện hiện đại là phương thức nghệ thuật để phản ánh sâu sắc hơn hiện thực tâm lý." },
+        { grade: "11", subject: "van", question: "AI nói: Thơ Nôm truyền tụng của Hồ Xuân Hương nổi tiếng với biệt danh 'Bà chúa thơ Nôm', đậm đà tính phồn sinh và tinh thần phản kháng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng đánh giá vị trí lịch sử tác gia Hồ Xuân Hương." },
+
+        // LỚP 12 - NGỮ VĂN
+        { grade: "12", subject: "van", question: "AI nói: Tác phẩm 'Tuyên ngôn Độc lập' của Hồ Chí Minh là một văn kiện lịch sử đồng thời là một tác phẩm văn chính luận mẫu mực.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng giá trị kép về mặt chính trị và nghệ thuật văn chương của tác phẩm." },
+        { grade: "12", subject: "van", question: "AI nói: Đoạn trích 'Tây Tiến' của Quang Dũng thể hiện hình ảnh người lính thời kháng chiến chống Pháp mang vẻ đẹp lãng mạn và bi hùng.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Cảm hứng lãng mạn kết hợp chất bi hùng khắc họa chân dung đoàn quân Tây Tiến." },
+        { grade: "12", subject: "van", question: "AI nói: Bài thơ 'Việt Bắc' của Tố Hữu được viết theo thể thơ tự do hiện đại mang đậm phong cách châu Âu.", correctAnswer: "AI đang nói dối.", detailedExplanation: "'Việt Bắc' viết bằng **thể thơ lục bát** truyền thống, mang đậm tính dân tộc." },
+        { grade: "12", subject: "van", question: "AI nói: Đất Nước trong đoạn trích 'Đất Nước' (trích trường ca 'Mặt đường khát vọng') của Nguyễn Khoa Điềm là Đất Nước của Nhân dân.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Tư tưởng cốt lõi xuyên suốt đoạn trích: 'Đất Nước này là Đất Nước của Nhân dân'." },
+        { grade: "12", subject: "van", question: "AI nói: Nhân vật Mị trong 'Vợ chồng A Phủ' của Tô Hoài thể hiện sức sống tiềm tàng và khát vọng tự do mãnh liệt của người dân vùng cao Tây Bắc.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng giá trị nhân đạo và vẻ đẹp nhân vật Mị." },
+        { grade: "12", subject: "van", question: "AI nói: Tác phẩm 'Vợ nhặt' của Kim Lân viết về đề tài người nông dân trong cuộc kháng chiến chống Mỹ cứu nước.", correctAnswer: "AI đang nói dối.", detailedExplanation: "'Vợ nhặt' lấy bối cảnh **nạn đói khủng khiếp năm 1945** (thời kỳ tiền khởi nghĩa chống Pháp/Nhật)." },
+        { grade: "12", subject: "van", question: "AI nói: Đội thuyền đánh cá trong bài thơ 'Thuyền và Biển' của Xuân Quỳnh tượng trưng cho không khí lao động tập thể miền Bắc.", correctAnswer: "AI đang nói dối.", detailedExplanation: "AI nhầm tác phẩm. 'Thuyền và Biển' mượn hình tượng để nói về **tình yêu đôi lứa**. Bài thơ về lao động là 'Đoàn thuyền đánh cá' của Huy Cận." },
+        { grade: "12", subject: "van", question: "AI nói: Nhỏ nhặt và triết lý nhân sinh là nét nổi bật trong kịch 'Hồn Trương Ba, da hàng thịt' của Lưu Quang Vũ.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Vấn đề con người phải được sống là chính mình, hài hòa giữa linh hồn và xác thịt mang tính triết lý sâu sắc." },
+        { grade: "12", subject: "van", question: "AI nói: Lỗi logic trong văn bản nghị luận thường do suy luận không căn cứ, mâu thuẫn giữa các luận điểm hoặc vơ đũa cả nắm.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng các bẫy lỗi logic phổ biến cần phát hiện trong thực hành Tiếng Việt lớp 12." },
+        { grade: "12", subject: "van", question: "AI nói: Phong cách ngôn ngữ Báo chí yêu cầu sự khách quan, chính xác, cập nhật tin tức và có tính thời sự cao.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng tính chất và đặc trưng phong cách báo chí." },
+        { grade: "12", subject: "van", question: "AI nói: Ký sự là thể loại ghi chép lại những sự việc, con người có thật một cách trung thực và có hệ thống.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định nghĩa đúng đặc trưng thể loại Ký sự." },
+        { grade: "12", subject: "van", question: "AI nói: Biện pháp tu từ Nói giảm nói tránh làm tăng tính giật gân, gây sốc cho người đọc.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Nói giảm nói tránh làm giảm độ đau thương, tế nhị, lịch sự." },
+        { grade: "12", subject: "van", question: "AI nói: Trong truyện ngắn 'Rừng xà nu' của Nguyễn Trung Thành, cây xà nu là hình tượng tượng trưng cho sức sống kiên cường của nhân dân Tây Nguyên.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Đúng giá trị biểu tượng mang tính thi ca của cây xà nu." },
+        { grade: "12", subject: "van", question: "AI nói: Phương pháp so sánh trong văn nghị luận chỉ được dùng để tìm ra điểm giống nhau giữa hai đối tượng.", correctAnswer: "AI đang nói dối.", detailedExplanation: "Phương pháp so sánh bao gồm cả so sánh tương đồng (giống) và so sánh tương phản (khác)." },
+        { grade: "12", subject: "van", question: "AI nói: Trải nghiệm đọc văn bản hiện đại đòi hỏi học sinh huy động tri thức nền, tư duy phản biện và sự chủ động đồng sáng tạo với tác giả.", correctAnswer: "AI đang nói đúng.", detailedExplanation: "Định hướng tiếp cận tác phẩm văn học theo mục tiêu của chương trình GDPT 2018." }
+    ];
+
+    let currentCard = null;
+
+    // Chuẩn hóa tên môn để lọc không bị sót
+    function normalizeSubject(str) {
+        if (!str) return '';
+        const s = str.toString().trim().toLowerCase();
+        if (s === 'toan' || s === 'toán' || s === 'môn toán') return 'toan';
+        if (s === 'ly' || s === 'lý' || s === 'vật lý' || s === 'môn vật lý') return 'ly';
+        if (s === 'hoa' || s === 'hóa' || s === 'hóa học' || s === 'môn hóa học') return 'hoa';
+        if (s === 'sinh' || s === 'sinh học' || s === 'môn sinh học') return 'sinh';
+        if (s === 'van' || s === 'văn' || s === 'ngữ văn' || s === 'môn ngữ văn') return 'van';
+        return s;
+    }
+
+    function loadQuestions() {
+        const msg = document.getElementById('status-msg');
+        msg.innerText = `Đã sẵn sàng hệ thống Offline với ${questionsDatabase.length} câu hỏi!`;
+    }
+
+    function drawCard() {
+        const grade = document.getElementById('gradeSelect').value.toString().trim();
+        const subject = normalizeSubject(document.getElementById('subjectSelect').value);
+
+        if (!grade || !subject) {
+            alert('Vui lòng chọn đầy đủ Khối Lớp và Môn Học!');
+            return;
+        }
+
+        const filtered = questionsDatabase.filter(q => {
+            const qGrade = q.grade ? q.grade.toString().trim() : '';
+            const qSubject = normalizeSubject(q.subject);
+            return qGrade === grade && qSubject === subject;
+        });
+
+        if (filtered.length === 0) {
+            alert(`Không tìm thấy câu hỏi cho Lớp ${grade} - Môn ${getSubjectName(subject)}!`);
+            return;
+        }
+
+        flipToFront();
+        document.getElementById('answerBox').style.display = 'none';
+
+        const randomIndex = Math.floor(Math.random() * filtered.length);
+        currentCard = filtered[randomIndex];
+
+        document.getElementById('frontMeta').innerText = `Lớp ${currentCard.grade} - Môn ${getSubjectName(currentCard.subject)}`;
+        document.getElementById('cardQuestion').innerText = currentCard.question;
+        
+        // Xử lý hiển thị Đáp án & Đổi giao diện Đỏ / Xanh
+        const answerText = currentCard.correctAnswer || '';
+        document.getElementById('correctAnswerText').innerText = answerText;
+
+        const answerBox = document.getElementById('answerBox');
+        const answerHeader = document.getElementById('answerHeader');
+
+        if (answerText.toLowerCase().includes('dối') || answerText.toLowerCase().includes('sai')) {
+            answerBox.className = 'content-box wrong';
+            answerHeader.innerText = '❌ Kết luận đáp án:';
+        } else {
+            answerBox.className = 'content-box correct';
+            answerHeader.innerText = '✅ Kết luận đáp án:';
+        }
+
+        document.getElementById('detailedExplanationText').innerText = currentCard.detailedExplanation || 'Chưa có giải thích chi tiết.';
+
+        // Yêu cầu MathJax render công thức toán tự động
+        if (window.MathJax) {
+            MathJax.typesetPromise();
+        }
+    }
+
+    function getSubjectName(code) {
+        const norm = normalizeSubject(code);
+        const names = {
+            'toan': 'TOÁN HỌC',
+            'ly': 'VẬT LÝ',
+            'hoa': 'HÓA HỌC',
+            'sinh': 'SINH HỌC',
+            'van': 'NGỮ VĂN'
+        };
+        return names[norm] || code.toUpperCase();
+    }
+
+    function flipToBack() {
+        if (!currentCard) {
+            alert('Hãy nhấn "Rút Thẻ Ngẫu Nhiên" trước!');
+            return;
+        }
+        document.getElementById('cardElement').classList.add('flipped');
+        if (window.MathJax) {
+            MathJax.typesetPromise();
+        }
+    }
+
+    function flipToFront() {
+        document.getElementById('cardElement').classList.remove('flipped');
+    }
+
+    function showSection(type) {
+        if (!currentCard) {
+            alert('Hãy nhấn "Rút Thẻ Ngẫu Nhiên" trước!');
+            return;
+        }
+        if (type === 'answer') {
+            const answerBox = document.getElementById('answerBox');
+            answerBox.style.display = answerBox.style.display === 'block' ? 'none' : 'block';
+            if (window.MathJax) {
+                MathJax.typesetPromise();
+            }
+        }
+    }
+
+    // Các hàm xử lý đóng/mở Cửa Sổ Hướng Dẫn Chơi
+    function openGuide() {
+        document.getElementById('guideModal').style.display = 'flex';
+    }
+
+    function closeGuide() {
+        document.getElementById('guideModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('guideModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    window.onload = loadQuestions;
+</script>
+
+</body>
+</html>
